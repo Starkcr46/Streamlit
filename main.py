@@ -1,3 +1,16 @@
 import streamlit as st
 
-st.text("hello world")
+st.title("Streamlit application")
+st.header("Main header")
+st.subheader("Sub header")
+st.markdown("Mark down **bold**")
+st.markdown("# Header1")
+st.markdown("## Header2")
+st.caption("caption")
+st.code(""" import panda as pd """)
+st.text("Just text")
+st.latex("x = x * 2")
+st.text("above line")
+st.divider()
+st.text("below line")
+st.write("write text")
