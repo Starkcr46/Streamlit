@@ -10,9 +10,6 @@ message = col4.text_area("Message", height=200, placeholder="Write your message 
 index = -1
 idVal = "none"
 
-
-        
-
 @st.cache_resource
 def init_connection():
     url: str = st.secrets['supabase_url']
