@@ -7,18 +7,43 @@ import base64
 import os
 import traceback
 import time
+import cv2
+from tempfile import NamedTemporaryFile
 
 st.set_page_config(layout="wide", page_title="Image Background Remover")
 
-st.write("## Remove background from your image")
+st.write("## Image Manipulation")
 
 st.sidebar.write("## Upload and download :gear:")
+
+select = st.selectbox("Select an option", options=["Remove Background", "Remove Foreground", "Show Negative"], index=0)
+
+st.write(select)
 
 # Increased file size limit
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
 
 # Max dimensions for processing
 MAX_IMAGE_SIZE = 2000  # pixels
+
+def remove_foreground(image_path):
+    img = cv2.imread(image_path)
+    if img is None:
+        raise FileNotFoundError(f"Image not found at {image_path}")
+  
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+    _, threshold = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+    
+    kernel = np.ones((3, 3), np.uint8)
+    dilated = cv2.dilate(threshold, kernel, iterations=3)
+    
+    masked_img = cv2.bitwise_and(img, img, mask=dilated)
+    
+    background = np.full(img.shape, 255, np.uint8)
+    removed_fg = cv2.bitwise_or(masked_img, background, mask=dilated)
+    
+    return img, removed_fg
 
 # Download the fixed image
 def convert_image(img):
@@ -64,7 +89,7 @@ def fix_image(upload):
         
         status_text.text("Loading image...")
         progress_bar.progress(10)
-        
+       
         # Read image bytes
         if isinstance(upload, str):
             # Default image path
@@ -81,7 +106,17 @@ def fix_image(upload):
         progress_bar.progress(30)
         
         # Process image (using cache if available)
-        image, fixed = process_image(image_bytes)
+        if(select == 'Remove Background'):
+            image, fixed = process_image(image_bytes)
+        elif select == 'Show Negative':
+            if isinstance(upload, str):
+                image, fixed = remove_foreground(upload)
+            else:    
+                splitter = my_upload.name.split(".")[1]
+                ext = "." + splitter
+                with NamedTemporaryFile(dir='.', suffix=ext, delete=False) as f:
+                    f.write(upload.getbuffer())
+                    image, fixed = remove_foreground(f.name)
         if image is None or fixed is None:
             return
         
@@ -133,6 +168,7 @@ if my_upload is not None:
         st.error(f"The uploaded file is too large. Please upload an image smaller than {MAX_FILE_SIZE/1024/1024:.1f}MB.")
     else:
         fix_image(upload=my_upload)
+
 else:
     # Try default images in order of preference
     default_images = ["./zebra.jpg", "./wallaby.png"]
@@ -140,5 +176,6 @@ else:
         if os.path.exists(img_path):
             fix_image(img_path)
             break
+
     else:
         st.info("Please upload an image to get started!")
