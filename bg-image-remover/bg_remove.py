@@ -117,6 +117,7 @@ def fix_image(upload):
                 with NamedTemporaryFile(dir='.', suffix=ext, delete=False) as f:
                     f.write(upload.getbuffer())
                     image, fixed = remove_foreground(f.name)
+    
         if image is None or fixed is None:
             return
         
